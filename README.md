@@ -2,6 +2,19 @@
 
 This project will compile and deploy zcash source code to sandbox environment with some specific code changes.
 
+# STATUS
+- [X] Deploy Tekton
+- [X] Deploy Minio
+- [X] Tekton task to sync block to Minio
+- [X] Tekton tasks to create random secret
+- [X] Tekton task to build and upload zcash binary to Minio
+- [ ] Create deployment for binary
+- [ ] Tekton task to deploy built binary miners
+- [ ] Tekton task to deploy built binary workers
+- [ ] Deploy metrics tools
+- [ ] Deploy dashboards
+
+
 ## Security
 
 Access to the Kubernetes api allows the operator to make arbitrary changes in the cluster.
@@ -67,14 +80,17 @@ Navigate to http://localhost:9097
 Minio will be used as object storage for blocks, binary files, and configurations.
 
 kubectl create -f kubernetes/tekton/tasks/create-minio-secret.yml
-kubectl create -f kubernetes/tekton/tasks/create-zcashrpc-secret.yml 
+kubectl create -f kubernetes/tekton/tasks/create-zcashrpc-secret.yml
+
 kubectl apply -f kubernetes/minio/minio-standalone-pvc.yaml
 kubectl apply -f kubernetes/minio/minio-standalone-service.yaml
 kubectl apply -f kubernetes/minio/minio-standalone-deployment.yaml
+
 ** Minio healthcheck needs to be passing
 kubectl create -f kubernetes/tekton/tasks/create-minio-bucket.yml
 kubectl create -f kubernetes/tekton/tasks/create-cache-bucket.yml
 kubectl create -f kubernetes/tekton/tasks/import-block-snapshot-minio.yml 
 
+kubectl apply -f kubernetes/template/zcash-inabox-configmap.yml
 kubectl create -f kubernetes/tekton/tasks/build-binary.yml
 
