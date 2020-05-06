@@ -25,12 +25,10 @@ No inbound connections are expected or supported.
 
 ## Requirements
 
-### Zcash source git repository
-
-https://github.com/zcash/zcash.git
 
 ### Kubernetes cluster
 
+```
 export CLUSTERNAME=zcash-in-a-box-ben-v1
 export CLUSTERZONE=us-west1-a
 export GCP_PROJECT=buildenv
@@ -50,7 +48,6 @@ clusters create ${CLUSTERNAME} \
 --enable-autoscaling \
 --max-nodes=2
 
-
 gcloud container clusters get-credentials \
   --project ${GCP_PROJECT} \
   --zone ${CLUSTERZONE} \
@@ -59,19 +56,23 @@ gcloud container clusters get-credentials \
 kubectl create clusterrolebinding cluster-admin-binding \
 --clusterrole=cluster-admin \
 --user=$(gcloud config get-value core/account)
+```
 
 ## Deploy Tekon
 
 Tekon is used to compile and deploy software inside the Kubernetes cluster.
 
-
+```
 kubectl apply -f kubernetes/tekton/release/tekton-pipelines-v0.12.0.yml
 kubectl apply -f kubernetes/tekton/release/tekton-dashboard-v0.6.1.yml
 kubectl apply -f kubernetes/tekton/serviceAccount.yml
+```
 
 ### Open the dashboard
 
+```
 kubectl --namespace tekton-pipelines port-forward svc/tekton-dashboard 9097:9097
+```
 
 Navigate to http://localhost:9097
 
@@ -79,18 +80,24 @@ Navigate to http://localhost:9097
 
 Minio will be used as object storage for blocks, binary files, and configurations.
 
+```
 kubectl create -f kubernetes/tekton/tasks/create-minio-secret.yml
 kubectl create -f kubernetes/tekton/tasks/create-zcashrpc-secret.yml
+```
 
+```
 kubectl apply -f kubernetes/minio/minio-standalone-pvc.yaml
 kubectl apply -f kubernetes/minio/minio-standalone-service.yaml
 kubectl apply -f kubernetes/minio/minio-standalone-deployment.yaml
+```
 
 ** Minio healthcheck needs to be passing
+```
 kubectl create -f kubernetes/tekton/tasks/create-minio-bucket.yml
 kubectl create -f kubernetes/tekton/tasks/create-cache-bucket.yml
 kubectl create -f kubernetes/tekton/tasks/import-block-snapshot-minio.yml 
-
+```
+```
 kubectl apply -f kubernetes/template/zcash-inabox-configmap.yml
 kubectl create -f kubernetes/tekton/tasks/build-binary.yml
-
+```
