@@ -1,0 +1,98 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: zcash-miner-testing
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zcash-miner-testing
+  serviceName: zcash-miner-testing
+  template:
+    metadata:
+      labels:
+        app: zcash-miner-testing
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9100'
+    spec:
+      containers:
+        - name: zcashd
+          image: electriccoinco/zcashd:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: zcash-inabox-configmap
+          env:
+            - name: ZCASHD_RPCPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: zcashd-rpc
+                  key: password                                                  
+          resources:
+            limits:
+              memory: 3Gi
+            requests:
+              memory: 1536Mi
+          volumeMounts:
+            - mountPath: /srv/zcashd/.zcash
+              name: zcash-miner-testing-data
+          ports:
+            - name: zcashrpc
+              containerPort: 38383
+        - name: zcashd-exporter
+          image: gcr.io/doubting-zcash/zcashd_exporter:latest
+          command:
+            - /go/bin/zcashd_exporter
+          args:
+            - --web.listen-address
+            - :9100
+            - --rpc.port
+            - "8232"
+            - --rpc.user
+            - $(ZCASHD_RPCUSER)
+            - --rpc.password
+            - $(ZCASHD_RPCPASSWORD)
+          env:
+            - name: ZCASHD_GEN
+              value: "1"
+            - name: ZCASHD_RPCUSER
+              valueFrom:
+                configMapKeyRef:
+                  key: ZCASHD_RPCUSER
+                  name: zcash-inabox-configmap
+            - name: ZCASHD_RPCPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: zcashd-rpc
+                  key: password
+          resources:
+            limits:
+              memory: 256Mi
+            requests:
+              memory: 139586437120m
+          ports:
+            - name: zcashd-exporter
+              containerPort: 9100
+      initContainers:
+        - command:
+            - sh
+            - -c
+            - chown -R 2001 /srv/zcashd/.zcash
+          image: busybox
+          imagePullPolicy: Always
+          name: volume-mount-hack
+          volumeMounts:
+            - mountPath: /srv/zcashd/.zcash
+              name: zcash-miner-testing-data
+  volumeClaimTemplates:
+    - metadata:
+        name: zcash-miner-testing-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 100Gi
+        volumeMode: Filesystem

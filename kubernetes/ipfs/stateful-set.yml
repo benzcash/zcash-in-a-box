@@ -1,0 +1,78 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ipfs-cache
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ipfs-cache
+  serviceName: ipfs-cache
+  template:
+    metadata:
+      labels:
+        app: ipfs-cache
+    spec:
+      initContainers:
+        - name: configure-ipfs
+          image: "ipfs/go-ipfs:v0.5.0"
+          command: ["sh", "/custom/configure-ipfs.sh"]
+          volumeMounts:
+            - name: ipfs-cache-storage
+              mountPath: /data/ipfs
+            - name: configure-script
+              mountPath: /custom            
+      containers:
+        - name: admin
+          image: ubuntu
+          resources:
+            limits:
+              memory: 1Gi
+            requests:
+              memory: 512Mi
+          command: ["bash", "-c", "sleep infinity"]
+          imagePullPolicy: IfNotPresent      
+        - name: ipfs
+          image: "ipfs/go-ipfs:v0.5.0"
+          resources:
+            limits:
+              memory: 3Gi
+            requests:
+              memory: 1536Mi
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: IPFS_FD_MAX
+              value: "4096"
+          ports:
+            - containerPort: 4001
+              name: swarm
+              protocol: TCP
+            - name: ipfs-api
+              containerPort: 5001
+            - name: ipfs-gateway
+              containerPort: 8080
+          livenessProbe:
+            tcpSocket:
+              port: swarm
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+            periodSeconds: 15
+          volumeMounts:
+            - name: ipfs-cache-storage
+              mountPath: /data/ipfs
+            - name: configure-script
+              mountPath: /custom          
+      volumes:
+      - name: configure-script
+        configMap:
+          name: ipfs-configmap
+  volumeClaimTemplates:
+    - metadata:
+        name: ipfs-cache-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 60Gi
+        volumeMode: Filesystem

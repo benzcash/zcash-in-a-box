@@ -1,0 +1,101 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: zcash-inabox
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zcashd
+  serviceName: zcashd
+  template:
+    metadata:
+      labels:
+        app: zcashd
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9100'
+    spec:
+      containers:
+      - envFrom:
+          - configMapRef:
+              name: zcash-inabox-configmap
+        env:
+          - name: ZCASHD_RPCPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: zcashd-rpc
+                key: password                                                  
+        image: electriccoinco/zcashd:latest
+        imagePullPolicy: Always
+        name: zcashd
+        resources:
+          limits:
+            memory: 3Gi
+          requests:
+            memory: 1536Mi
+        volumeMounts:
+        - mountPath: /srv/zcashd/.zcash
+          name: zcash-data-dir-insight
+        ports:
+        - name: zcashrpc
+          containerPort: 38383
+
+      - command:
+        - /go/bin/zcashd_exporter
+        args:
+        - --web.listen-address
+        - :9100
+        - --rpc.port
+        - "8232"
+        - --rpc.user
+        - $(ZCASHD_RPCUSER)
+        - --rpc.password
+        - $(ZCASHD_RPCPASSWORD)
+        env:
+        - name: ZCASHD_RPCUSER
+          valueFrom:
+            configMapKeyRef:
+              key: ZCASHD_RPCUSER
+              name: zcash-insight-env
+        - name: ZCASHD_RPCPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: zcashd-rpc
+              key: password
+
+        image: gcr.io/doubting-zcash/zcashd_exporter:latest
+        imagePullPolicy: Always
+        name: zcashd-exporter
+        resources:
+          limits:
+            memory: 256Mi
+          requests:
+            memory: 139586437120m
+        ports:
+        - name: zcashd-exporter
+          containerPort: 9100
+
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - chown -R 2001 /srv/zcashd/.zcash
+        image: busybox
+        imagePullPolicy: Always
+        name: volume-mount-hack
+        volumeMounts:
+        - mountPath: /srv/zcashd/.zcash
+          name: zcash-data-dir-insight
+      restartPolicy: Always
+  volumeClaimTemplates:
+  - metadata:
+      name: zcash-data-dir-insight
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 100Gi
+      volumeMode: Filesystem

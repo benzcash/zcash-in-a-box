@@ -1,0 +1,22 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  generateName: import-block-snapshot-ipfs-
+spec:
+  timeout: 120m # https://golang.org/pkg/time/#ParseDuration
+  taskSpec:
+    params:   
+    - name: SNAPSHOT_HASH
+      default: QmWmJs717t8gWMxVzRkrRjvAPmt5qBGaNMc1E87k3uz7uR
+      type: string                  
+    steps:    
+      - name: import-block-snapshot
+        image: ipfs/go-ipfs:v0.5.0                  
+        script: |
+          #!/bin/sh
+          ipfs --api /dns/ipfs-cache/tcp/5001 \
+            pin add \
+            --recursive \
+            --progress \
+            $(params.SNAPSHOT_HASH)
