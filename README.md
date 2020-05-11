@@ -8,12 +8,14 @@ This project will compile and deploy zcash source code to sandbox environment wi
 - [X] Tekton task to sync block to Minio
 - [X] Tekton tasks to create random secret
 - [X] Tekton task to build and upload zcash binary to Minio
+- [X] Make runner Docker image for deployments
+- [ ] Deploy Tekton triggers ?? <-- not yet needed
 - [ ] Create deployment for binary
 - [ ] Tekton task to deploy built binary miners
 - [ ] Tekton task to deploy built binary workers
 - [ ] Deploy metrics tools
 - [ ] Deploy dashboards
-
+- [ ] Setup CI for runner Dockerfile
 
 ## Security
 
@@ -27,6 +29,15 @@ No inbound connections are expected or supported.
 
 
 ### Kubernetes cluster
+
+
+Using `kind`
+```
+kind create cluster --name zcash-in-a-box
+kubectl cluster-info
+```
+
+Using GCP
 
 ```
 export CLUSTERNAME=zcash-in-a-box-ben-v1
@@ -95,9 +106,41 @@ kubectl apply -f kubernetes/minio/minio-standalone-deployment.yaml
 ```
 kubectl create -f kubernetes/tekton/tasks/create-minio-bucket.yml
 kubectl create -f kubernetes/tekton/tasks/create-cache-bucket.yml
+```
+
+## Import block snapshot
+
+### Using a Tekton task
+```
 kubectl create -f kubernetes/tekton/tasks/import-block-snapshot-minio.yml 
 ```
+
+### From local storage
+
+Using Minio
+
+- Download and install the minio client, `mc` from https://min.io/download#/
+- Get the minio auth secret key, put it in an environmental variable.
 ```
-kubectl apply -f kubernetes/template/zcash-inabox-configmap.yml
+export Z_SECRETACCESSKEY=$(kubectl  get secrets minio-secret-key -o jsonpath="{.data.SECRETACCESSKEY}" | base64 -d)
+```
+- Expose the minio port locally
+```
+kubectl port-forward svc/minio 9000:9000
+```
+- Upload the snapshot
+```
+mc config host add zcash-in-a-box http://localhost:9000 minio ${Z_SECRETACCESSKEY} --api S3v4
+mc cp <BLOCK_SNAPSHOT_FILE_PATH> zcash-in-a-box/cache/
+```
+
+## Build zcashd
+
+
+```
 kubectl create -f kubernetes/tekton/tasks/build-binary.yml
 ```
+
+## Deploy zcashd
+
+## Deploy monitoring
