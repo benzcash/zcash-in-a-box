@@ -1,0 +1,100 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zcash-script-test-wallet
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: zcash-script-test-wallet
+  template:
+    metadata:
+      labels:
+        app: zcash-script-test-wallet
+        network: zcash-script-test
+    spec:
+      containers:
+        - name: zcashd-script-test
+          image: electriccoinco/zcash-in-a-box-runner:latest
+          env:
+            - name: Z_SECRETACCESSKEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret-key
+                  key: SECRETACCESSKEY                   
+          args:
+            - bash
+            - -c
+            - |
+              ls -l
+              # Configure the minio client
+              mc config host add zcash-in-a-box http://minio:9000 minio ${Z_SECRETACCESSKEY} --api S3v4
+              # Copy zcash network parameters
+              mc cp -r zcash-in-a-box/cache/zcash-params/ ${HOME}/.zcash-params/
+              # Get a zcashd binary
+              export ZCASHD_BINARY_TGZ=zcashd-artifacts-master.tgz
+              mc cp zcash-in-a-box/binaries/${ZCASHD_BINARY_TGZ} zcashd-artifacts.tgz
+              tar zxvf zcashd-artifacts.tgz
+              # Get a zcash network snapshot
+              export ZCASHD_SNAPSHOT=zcash-testnet3-809421.tgz
+              mc cp zcash-in-a-box/cache/${ZCASHD_SNAPSHOT} blocks_snapshot.tgz
+              export ZCASH_BLOCK_DIR=testnet3
+              mkdir -p ${HOME}/.zcash/${ZCASH_BLOCK_DIR}
+              tar zxvf blocks_snapshot.tgz -C ${HOME}/.zcash/${ZCASH_BLOCK_DIR}
+
+              # Get a zcashd configuration
+              # ??
+              # Start the daemon
+              touch ${HOME}/.zcash/zcash.conf
+              /workspace/source/src/zcashd -testnet -gen=0 -printtoconsole -showmetrics=0
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zcash-script-test-miner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zcash-script-test-miner
+  template:
+    metadata:
+      labels:
+        app: zcash-script-test-miner
+        network: zcash-script-test        
+    spec:
+      containers:
+        - name: zcashd-script-test
+          image: electriccoinco/zcash-in-a-box-runner:latest
+          env:
+            - name: Z_SECRETACCESSKEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret-key
+                  key: SECRETACCESSKEY                   
+          args:
+            - bash
+            - -c
+            - |
+              ls -l
+              # Configure the minio client
+              mc config host add zcash-in-a-box http://minio:9000 minio ${Z_SECRETACCESSKEY} --api S3v4
+              # Copy zcash network parameters
+              mc cp -r zcash-in-a-box/cache/zcash-params/ ${HOME}/.zcash-params/
+              # Get a zcashd binary
+              export ZCASHD_BINARY_TGZ=zcashd-artifacts-master.tgz
+              mc cp zcash-in-a-box/binaries/${ZCASHD_BINARY_TGZ} zcashd-artifacts.tgz
+              tar zxvf zcashd-artifacts.tgz
+              # Get a zcash network snapshot
+              export ZCASHD_SNAPSHOT=zcash-testnet3-809421.tgz
+              mc cp zcash-in-a-box/cache/${ZCASHD_SNAPSHOT} blocks_snapshot.tgz
+              export ZCASH_BLOCK_DIR=testnet3
+              mkdir -p ${HOME}/.zcash/${ZCASH_BLOCK_DIR}
+              tar zxvf blocks_snapshot.tgz -C ${HOME}/.zcash/${ZCASH_BLOCK_DIR}
+
+              # Get a zcashd configuration
+              # ??
+              # Start the daemon
+              touch ${HOME}/.zcash/zcash.conf
+              /workspace/source/src/zcashd -testnet -gen=1 -printtoconsole -showmetrics=0 -equihashsolver=tromp -genproclimit=2
