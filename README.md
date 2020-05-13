@@ -9,13 +9,14 @@ This project will compile and deploy zcash source code to sandbox environment wi
 - [X] Tekton tasks to create random secret
 - [X] Tekton task to build and upload zcash binary to Minio
 - [X] Make runner Docker image for deployments
-- [ ] Deploy Tekton triggers ?? <-- not yet needed
-- [ ] Create deployment for binary
-- [ ] Tekton task to deploy built binary miners
-- [ ] Tekton task to deploy built binary workers
-- [ ] Deploy metrics tools
+- [X] Create deployment for binary
+- [ ] Tekton task to deploy
+- [X] Deploy metrics tools
 - [ ] Deploy dashboards
 - [ ] Setup CI for runner Dockerfile
+
+# TODO
+- Prometheus target labels should be more dynamic
 
 ## Security
 
@@ -135,7 +136,7 @@ mc cp <BLOCK_SNAPSHOT_FILE_PATH> zcash-in-a-box/cache/
 ```
 
 ## Build zcashd
-
+Create a zcashd binary by running the Tekton job. This will run the build task, grab the output binaries and upload the to internal S3 compatible storage.
 
 ```
 kubectl create -f kubernetes/tekton/tasks/build-binary.yml
@@ -143,4 +144,38 @@ kubectl create -f kubernetes/tekton/tasks/build-binary.yml
 
 ## Deploy zcashd
 
+Currently an example deployment that retrieves the build binary and runs a miner and wallet node deploymenet.
+
+```
+kubectl  apply -f kubernetes/template/zcash-script-deploy-miner.yml 
+kubectl  apply -f kubernetes/template/zcash-script-deploy-wallet.yml 
+```
+
 ## Deploy monitoring
+
+The monitoring statefulset will collect metrics about the deployed nodes.
+
+```
+kubectl apply -f kubernetes/monitoring/configmap.yml
+kubectl apply -f kubernetes/monitoring/service.yml
+kubectl apply -f kubernetes/monitoring/serviceaccount.yml
+kubectl apply -f kubernetes/monitoring/statefulset.yml
+```
+
+
+Get the grafana admin password
+```
+kubectl get secrets monitoring-grafana-admin -o jsonpath="{.data.password}" | base64 -d
+```
+
+
+Open a tunnel to grafana
+
+```
+kubectl port-forward svc/monitoring 3000:3000
+```
+
+Open a browser to http://locahost:3000
+
+Login as `admin` with the generated password secret.
+
