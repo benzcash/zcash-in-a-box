@@ -95,6 +95,7 @@ Minio will be used as object storage for blocks, binary files, and configuration
 ```
 kubectl create -f kubernetes/tekton/tasks/create-minio-secret.yml
 kubectl create -f kubernetes/tekton/tasks/create-zcashrpc-secret.yml
+kubectl create -f kubernetes/tekton/tasks/create-monitoring-grafana-admin-secret.yml
 ```
 
 ```
