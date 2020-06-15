@@ -39,7 +39,7 @@ Tekon is used to compile and deploy software inside the Kubernetes cluster.
 ```
 kubectl apply -f kubernetes/tekton/release/tekton-pipelines-v0.13.0.yml
 kubectl apply -f kubernetes/tekton/release/tekton-dashboard-v0.7.0.yml
-kubectl apply -f kubernetes/tekton/serviceAccount.yml
+kubectl apply -f kubernetes/tekton/serviceAccount-sec.yml
 ```
 
 ### Open the dashboard
