@@ -1,0 +1,114 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  generateName: zcashd-build-tze-
+spec:
+  serviceAccountName: tekton
+  workspaces:
+    - name: venv
+      emptyDir: {}  
+  resources:
+    inputs:
+      - name: source
+        resourceSpec:
+          type: git
+          params:
+            - name: revision
+              value: zip-tzes
+            - name: url
+              value: https://github.com/nuttycom/zcash.git
+  taskSpec:
+    params:
+      - name: MINIOHOST
+        default: http://minio:9000
+        type: string
+      - name: MINIOBUCKET
+        default: binaries
+        type: string    
+      - name: COMMIT
+        default: master
+        type: string                  
+      - name: JOBS
+        default: "4"
+        type: string
+    resources:
+      inputs:
+        - name: source
+          type: git
+    workspaces:
+        - name: venv
+          mountPath: /venv    
+    steps:
+      - name: setup-venv
+        image: electriccoinco/zcashd-build:debian10
+        script: |
+          #!/bin/bash
+          set -e -o pipefail
+          pwd
+          ls -al
+          whoami
+          python3 -m venv /venv/zcash-build-venv
+          source /venv/zcash-build-venv/bin/activate
+          python -m pip install pyblake2 pyflakes python-qpid-proton pyutil pyzmq requests simplejson
+      - name: new-magic-numbers
+        image: electriccoinco/zcashd-build:debian10
+        script: |
+          #!/bin/bash
+          set -e -o pipefail
+          mkdir -p source/zcutil/tnbox/
+          curl -sL https://raw.githubusercontent.com/zcash/zcash/f085f5e232d4a04169fc35c150d5c8dc32b58a9b/zcutil/tnbox/tnbox.py -o source/zcutil/tnbox/tnbox.py
+          source /venv/zcash-build-venv/bin/activate
+          cd source/zcutil/tnbox/
+          python ./tnbox.py
+          cd /workspace/source
+          if ! git diff --exit-code;then exit 0;else exit 1;fi # Test that the script created changes
+      - name: pyflakes
+        image: electriccoinco/zcashd-build:debian10
+        script: |
+          #!/bin/bash
+          set -e -o pipefail
+          source /venv/zcash-build-venv/bin/activate
+          pwd
+          ls -l
+          cd source
+          pyflakes src zcutil
+      - name: build
+        image: electriccoinco/zcashd-build:debian10
+        script: |
+          #!/bin/bash
+          set -e -o pipefail
+          cd source
+          pwd
+          ls -la
+          CONFIGURE_FLAGS="--enable-online-rust" ./zcutil/build.sh -j$(params.JOBS)
+      - name: upload-file
+        image: minio/mc
+        env:
+          - name: ACCESSKEYID
+            valueFrom:
+              secretKeyRef:
+                name: minio-secret-key
+                key: ACCESSKEYID 
+          - name: SECRETACCESSKEY
+            valueFrom:
+              secretKeyRef:
+                name: minio-secret-key
+                key: SECRETACCESSKEY                        
+        script: |
+          #!/bin/sh
+          env | sort
+          set -xe -o pipefail
+          pwd
+          ls -al
+          ls -al /workspace
+          ls -al /workspace/source
+          ls -al /workspace/source/src
+          mc config host add minio $(params.MINIOHOST) ${ACCESSKEYID} ${SECRETACCESSKEY}
+          tar --strip-components 3 \
+            -zvcf ./zcashd-artifacts-$(params.COMMIT).tgz \
+            /workspace/source/src/zcashd \
+            /workspace/source/src/zcash-cli \
+            /workspace/source/src/zcash-gtest \
+            /workspace/source/src/zcash-tx
+          mc cp ./zcashd-artifacts-$(params.COMMIT).tgz minio/$(params.MINIOBUCKET)/
