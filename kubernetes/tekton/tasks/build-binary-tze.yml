@@ -51,18 +51,6 @@ spec:
           python3 -m venv /venv/zcash-build-venv
           source /venv/zcash-build-venv/bin/activate
           python -m pip install pyblake2 pyflakes python-qpid-proton pyutil pyzmq requests simplejson
-      - name: new-magic-numbers
-        image: electriccoinco/zcashd-build:debian10
-        script: |
-          #!/bin/bash
-          set -e -o pipefail
-          mkdir -p source/zcutil/tnbox/
-          curl -sL https://raw.githubusercontent.com/zcash/zcash/f085f5e232d4a04169fc35c150d5c8dc32b58a9b/zcutil/tnbox/tnbox.py -o source/zcutil/tnbox/tnbox.py
-          source /venv/zcash-build-venv/bin/activate
-          cd source/zcutil/tnbox/
-          python ./tnbox.py
-          cd /workspace/source
-          if ! git diff --exit-code;then exit 0;else exit 1;fi # Test that the script created changes
       - name: pyflakes
         image: electriccoinco/zcashd-build:debian10
         script: |
@@ -73,13 +61,19 @@ spec:
           ls -l
           cd source
           pyflakes src zcutil
-      - name: build
+      - name: build-with-new-magic-numbers
         image: electriccoinco/zcashd-build:debian10
         script: |
           #!/bin/bash
           set -e -o pipefail
-          cd source
-          pwd
+          git --git-dir=./source/.git rev-parse --short HEAD > /workspace/GIT_COMMIT
+          mkdir -p source/zcutil/tnbox/
+          curl -sL https://raw.githubusercontent.com/zcash/zcash/f085f5e232d4a04169fc35c150d5c8dc32b58a9b/zcutil/tnbox/tnbox.py -o source/zcutil/tnbox/tnbox.py
+          source /venv/zcash-build-venv/bin/activate
+          cd source/zcutil/tnbox/
+          python ./tnbox.py
+          cd /workspace/source
+          if git diff --exit-code;then echo "No diff, exiting";exit 1;fi # Test that the script created changes          
           ls -la
           CONFIGURE_FLAGS="--enable-online-rust" ./zcutil/build.sh -j$(params.JOBS)
       - name: upload-file
@@ -99,6 +93,7 @@ spec:
           #!/bin/sh
           env | sort
           set -xe -o pipefail
+          export GIT_COMMIT=$(cat /workspace/GIT_COMMIT)
           pwd
           ls -al
           ls -al /workspace
@@ -106,9 +101,9 @@ spec:
           ls -al /workspace/source/src
           mc config host add minio $(params.MINIOHOST) ${ACCESSKEYID} ${SECRETACCESSKEY}
           tar --strip-components 3 \
-            -zvcf ./zcashd-artifacts-$(params.COMMIT).tgz \
+            -zvcf ./zcashd-tze-artifacts-${GIT_COMMIT}.tgz \
             /workspace/source/src/zcashd \
             /workspace/source/src/zcash-cli \
             /workspace/source/src/zcash-gtest \
             /workspace/source/src/zcash-tx
-          mc cp ./zcashd-artifacts-$(params.COMMIT).tgz minio/$(params.MINIOBUCKET)/
+          mc cp ./zcashd-tze-artifacts-${GIT_COMMIT}.tgz minio/$(params.MINIOBUCKET)/
