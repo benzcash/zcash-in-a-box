@@ -2,7 +2,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: zcash-script-miner
+  name: zcash-script-miner-master
 spec:
   replicas: 1
   selector:
@@ -26,7 +26,7 @@ spec:
               mountPath: /workspace/zcashconf
           envFrom:
             - configMapRef:
-                name: zcashd-tze-65231f6              
+                name: zcashd-testnet-master              
           env:
             - name: Z_SECRETACCESSKEY
               valueFrom:
@@ -48,19 +48,21 @@ spec:
               env | sort
               # Configure the minio client
               mc config host add zcash-in-a-box http://minio:9000 minio ${Z_SECRETACCESSKEY} --api S3v4
-              # Get zcash network parameters
+              # Copy zcash network parameters
               mc cp -r zcash-in-a-box/cache/zcash-params/ ${HOME}/.zcash-params/
               # Get a zcashd binary
               mc cp zcash-in-a-box/binaries/${ZCASHD_BINARY_TGZ} zcashd-artifacts.tgz
               tar zxvf zcashd-artifacts.tgz
               # Get a zcash network snapshot
+              export ZCASHD_SNAPSHOT=zcash-testnet3-809421.tgz
               mc cp zcash-in-a-box/cache/${ZCASHD_SNAPSHOT} blocks_snapshot.tgz
               export ZCASH_BLOCK_DIR=testnet3
               mkdir -p ${HOME}/.zcash/${ZCASH_BLOCK_DIR}
               tar zxvf blocks_snapshot.tgz -C ${HOME}/.zcash/${ZCASH_BLOCK_DIR}
-              # Copy the configmap, because reasons
-              cp /workspace/zcashconf ${HOME}/.zcash/zcash.conf
-              /workspace/source/src/zcashd
+              # Get a zcashd configuration
+              # 
+              sleep infinity
+              /workspace/source/src/zcashd -testnet -gen=1 -printtoconsole -showmetrics=0 -equihashsolver=tromp -genproclimit=2 -rpcuser=${ZCASHD_RPCUSER} -rpcpassword=${ZCASHD_RPCPASSWORD} -rpcport=${ZCASHD_RPCPORT}
         - name: zcashd-exporter
           image: electriccoinco/zcashd_exporter
           command:

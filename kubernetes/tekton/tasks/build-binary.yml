@@ -14,9 +14,9 @@ spec:
           type: git
           params:
             - name: revision
-              value: tekton-task-build
+              value: master
             - name: url
-              value: https://github.com/benzcash/zcash.git
+              value: https://github.com/zcash/zcash.git
   taskSpec:
     params:
       - name: MINIOHOST
@@ -49,7 +49,7 @@ spec:
           whoami
           python3 -m venv /venv/zcash-build-venv
           source /venv/zcash-build-venv/bin/activate
-          python -m pip install -r source/contrib/ci-workers-docker/requirements.txt
+          python -m pip install pyblake2 pyflakes python-qpid-proton pyutil pyzmq requests simplejson
       - name: pyflakes
         image: electriccoinco/zcashd-build:debian10
         script: |

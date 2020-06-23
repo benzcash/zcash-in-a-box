@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zcashd-tze-5c7e3c4
+data:
+  ZCASHD_BINARY_TGZ: zcashd-tze-artifacts-5c7e3c4.tgz
+  ZCASHD_SNAPSHOT: zcash-testnet3-809421.tgz
+---  
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zcashd-testnet-master
+data:
+  ZCASHD_BINARY_TGZ: zcashd-artifacts-master.tgz
+  ZCASHD_SNAPSHOT: zcash-testnet3-809421.tgz  
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zcashd-tze-testnet-miner-config
+data: 
+  zcash.conf: |
+    listen=1
+    testnet=1
+    showmetrics=0
+    logips=1
+    dns=0
+    gen=1
+    experimentalfeatures=0
+    txindex=0
+    insightexplorer=0
+    printtoconsole=1
+    equihashsolver=tromp
+    genproclimit=4
+    rpcuser=zcashrpc
+    rpcport=38232

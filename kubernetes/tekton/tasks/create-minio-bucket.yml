@@ -2,7 +2,7 @@
 apiVersion: tekton.dev/v1beta1
 kind: TaskRun
 metadata:
-  name: create-buckets
+  name: create-binaries-bucket
 spec:
   serviceAccountName: tekton
   taskSpec:
