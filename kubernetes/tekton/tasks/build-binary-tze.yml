@@ -3,6 +3,8 @@ apiVersion: tekton.dev/v1beta1
 kind: TaskRun
 metadata:
   generateName: zcashd-build-tze-
+  labels:
+    variant: tze
 spec:
   serviceAccountName: tekton
   workspaces:
@@ -66,9 +68,10 @@ spec:
         script: |
           #!/bin/bash
           set -e -o pipefail
+          set -x
           git --git-dir=./source/.git rev-parse --short HEAD > /workspace/GIT_COMMIT
           mkdir -p source/zcutil/tnbox/
-          curl -sL https://raw.githubusercontent.com/zcash/zcash/f085f5e232d4a04169fc35c150d5c8dc32b58a9b/zcutil/tnbox/tnbox.py -o source/zcutil/tnbox/tnbox.py
+          curl -sL https://raw.githubusercontent.com/benzcash/zcash/no-branch-id-tnbox/zcutil/tnbox/tnbox.py -o source/zcutil/tnbox/tnbox.py
           source /venv/zcash-build-venv/bin/activate
           cd source/zcutil/tnbox/
           python ./tnbox.py

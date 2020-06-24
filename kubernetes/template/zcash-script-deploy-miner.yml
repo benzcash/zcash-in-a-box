@@ -26,7 +26,7 @@ spec:
               mountPath: /workspace/zcashconf
           envFrom:
             - configMapRef:
-                name: zcashd-tze-65231f6              
+                name: zcashd-tze-5c7e3c4              
           env:
             - name: Z_SECRETACCESSKEY
               valueFrom:
@@ -50,7 +50,7 @@ spec:
               mc config host add zcash-in-a-box http://minio:9000 minio ${Z_SECRETACCESSKEY} --api S3v4
               # Get zcash network parameters
               mc cp -r zcash-in-a-box/cache/zcash-params/ ${HOME}/.zcash-params/
-              # Get a zcashd binary
+              # Get zcashd artifacts
               mc cp zcash-in-a-box/binaries/${ZCASHD_BINARY_TGZ} zcashd-artifacts.tgz
               tar zxvf zcashd-artifacts.tgz
               # Get a zcash network snapshot
@@ -59,7 +59,8 @@ spec:
               mkdir -p ${HOME}/.zcash/${ZCASH_BLOCK_DIR}
               tar zxvf blocks_snapshot.tgz -C ${HOME}/.zcash/${ZCASH_BLOCK_DIR}
               # Copy the configmap, because reasons
-              cp /workspace/zcashconf ${HOME}/.zcash/zcash.conf
+              cp /workspace/zcashconf/zcash.conf ${HOME}/.zcash/zcash.conf
+              sleep infinity
               /workspace/source/src/zcashd
         - name: zcashd-exporter
           image: electriccoinco/zcashd_exporter
