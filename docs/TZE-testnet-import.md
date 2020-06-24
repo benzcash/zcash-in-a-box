@@ -1,6 +1,10 @@
 # How to ensure block snapshot from testnet will load on a BoxedTestnet
 
-Assume a currently running zcashd node (ZCASHD1) on testnet synced to TestnetCurrentHeight.
+Source code location:
+repo: https://github.com/nuttycom/zcash.git  
+branch: zip-tzes  
+
+Build and run a zcashd node on testnet synced to TestnetCurrentHeight.
 
 Stop the instance.
 
