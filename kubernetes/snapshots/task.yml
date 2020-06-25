@@ -1,0 +1,99 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: zcash-snapshot-minio
+spec:
+  params:
+    - name: BLOCKHEIGHT
+      type: string
+      description: The block heigh to take the snaphost at
+    - name: CFGNAME
+      type: string
+      description: Name of the configmap containing the zcashd configuration
+    - name: MINIOHOST
+      default: http://minio:9000
+      type: string
+    - name: MINIOBUCKET
+      default: cache
+      type: string
+    - name: ZCASHD_BINARY_TGZ
+      description: Binary pacakge name to grab from minio
+    - name: ZCASH_DATADIR_PREFIX
+      type: string
+      default: "."
+      description: Zcash data directory prefix for "blocks" and "chainstate". Ex "testnet3" for testnet
+  volumes:
+    - name: export-dir
+      emptyDir: {}
+    - name: zcashconf
+      configMap:
+        name: "$(params.CFGNAME)"
+  steps:
+    - name: sync-and-make-snapshot
+      image: electriccoinco/zcash-in-a-box-runner:latest
+      volumeMounts:
+        - name: zcashconf
+          mountPath: /tekton/home/zcash-temp-config
+        - name: export-dir
+          mountPath: /export-dir
+      env:
+            - name: Z_SECRETACCESSKEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret-key
+                  key: SECRETACCESSKEY
+      command:
+        - bash
+        - -c
+        - |
+          set -e -o pipefail
+          set -x
+          ls -l
+          env | sort
+          # Configure the minio client
+          mc config host add zcash-in-a-box http://minio:9000 minio ${Z_SECRETACCESSKEY} --api S3v4
+          # Get zcash network parameters
+          mc cp -r zcash-in-a-box/cache/zcash-params/ ${HOME}/.zcash-params/
+          # Get zcashd artifacts
+          mc cp zcash-in-a-box/binaries/$(params.ZCASHD_BINARY_TGZ) zcashd-artifacts.tgz
+          tar zxvf zcashd-artifacts.tgz
+          cp workspace/source/src/zcash* /usr/local/bin/
+          # Setup zcash.conf
+          mkdir -p /tekton/home/.zcash/
+          cp /tekton/home/zcash-temp-config/conf /tekton/home/.zcash/zcash.conf
+          cat /tekton/home/.zcash/zcash.conf
+          #sleep infinity
+          cd /tekton/home/.zcash/ \
+            && pwd \
+            && curl -LO https://github.com/doubtingben/zcashd-block-snapshot/releases/download/v0.0.3/zcashd-block-snapshot-v0.0.3 \
+            && chmod +x zcashd-block-snapshot-v0.0.3 \
+            && ./zcashd-block-snapshot-v0.0.3 -stop-height $(params.BLOCKHEIGHT) -export-dir /export-dir/ -data-dir ${HOME}/.zcash \
+            && pwd \
+            && find . -type f \
+            && tar zvcf /export-dir/block-snapshot-file.tgz $(params.ZCASH_DATADIR_PREFIX)/blocks/* $(params.ZCASH_DATADIR_PREFIX)/chainstate/*
+
+    - name: upload-file
+      image: minio/mc
+      volumeMounts:
+        - name: export-dir
+          mountPath: /export-dir      
+      env:
+        - name: ACCESSKEYID
+          valueFrom:
+            secretKeyRef:
+              name: minio-secret-key
+              key: ACCESSKEYID 
+        - name: SECRETACCESSKEY
+          valueFrom:
+            secretKeyRef:
+              name: minio-secret-key
+              key: SECRETACCESSKEY                        
+      script: |
+        #!/bin/sh
+        env | sort
+        set -xe -o pipefail
+        pwd
+        ls -lh /export-dir/
+        mc config host add minio $(params.MINIOHOST) ${ACCESSKEYID} ${SECRETACCESSKEY}
+        mc cp /export-dir/block-snapshot-file.tgz minio/$(params.MINIOBUCKET)/$(params.CFGNAME)-$(params.BLOCKHEIGHT).tgz

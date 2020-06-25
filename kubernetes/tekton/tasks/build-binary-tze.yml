@@ -1,3 +1,6 @@
+# Builds zcashd from source, with a tnbox.py run against it.
+# The tnbox.py script must produce a git diff, or the build will fail
+# Artifacts are named zcashd-tze-artifacts-${GIT_COMMIT}.tgz
 ---
 apiVersion: tekton.dev/v1beta1
 kind: TaskRun

@@ -1,0 +1,85 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zcash-mainnet-experimental-config
+data: 
+  conf: |
+    listen=1
+    showmetrics=0
+    logips=1
+    gen=0
+    addnode=mainnet.z.cash
+    experimentalfeatures=1
+    txindex=1
+    insightexplorer=1
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zcash-mainnet-normal-config
+data: 
+  conf: |
+    listen=1
+    showmetrics=0
+    logips=1
+    gen=0
+    addnode=mainnet.z.cash
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zcash-testnet-experimental-config
+data: 
+  conf: |
+    listen=1
+    showmetrics=0
+    logips=1
+    gen=0
+    addnode=testnet.z.cash
+    experimentalfeatures=1
+    testnet=1
+    txindex=1
+    insightexplorer=1
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zcash-testnet-normal-config
+data: 
+  conf: |
+    listen=1
+    showmetrics=0
+    logips=1
+    gen=0
+    addnode=testnet.z.cash
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zcash-mainnet-paymentdisclosure-config
+data: 
+  conf: |
+    listen=1
+    showmetrics=0
+    logips=1
+    gen=0
+    addnode=mainnet.z.cash
+    experimentalfeatures=1
+    txindex=1
+    paymentdisclosure=1
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zcash-testnet-paymentdisclosure-config
+data: 
+  conf: |
+    listen=1
+    showmetrics=0
+    logips=1
+    gen=0
+    addnode=testnet.z.cash
+    experimentalfeatures=1
+    txindex=1
+    paymentdisclosure=1

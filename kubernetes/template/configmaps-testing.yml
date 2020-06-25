@@ -12,7 +12,7 @@ metadata:
   name: zcashd-testnet-master
 data:
   ZCASHD_BINARY_TGZ: zcashd-artifacts-master.tgz
-  ZCASHD_SNAPSHOT: zcash-testnet3-809421.tgz  
+  ZCASHD_SNAPSHOT: zcash-testnet-974247.tgz
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -26,11 +26,11 @@ data:
     logips=1
     dns=0
     gen=1
-    experimentalfeatures=0
-    txindex=0
-    insightexplorer=0
+    experimentalfeatures=1
+    txindex=1
+    insightexplorer=1
     printtoconsole=1
     equihashsolver=tromp
-    genproclimit=4
+    genproclimit=24
     rpcuser=zcashrpc
     rpcport=38232

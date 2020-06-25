@@ -1,0 +1,18 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  generateName: zcash-snapshot-minio-testnet-experimental-config-
+spec:
+  timeout: 24h
+  params:
+    - name: BLOCKHEIGHT
+      value: "975492"
+    - name: CFGNAME
+      value: zcash-testnet-experimental-config
+    - name: ZCASH_DATADIR_PREFIX
+      value: .
+    - name: ZCASHD_BINARY_TGZ
+      value: zcashd-artifacts-master.tgz
+  taskRef:
+    name: zcash-snapshot-minio

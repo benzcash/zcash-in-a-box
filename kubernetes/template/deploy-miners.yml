@@ -2,17 +2,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: zcash-script-miner-master
+  name: miners
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: zcash-script-miner
+      app: miners
   template:
     metadata:
       labels:
-        app: zcash-script-miner
-        network: zcash-script
+        app: miners
+        network: tze
     spec:
       volumes:
         - name: zcashconf
@@ -23,11 +23,10 @@ spec:
           image: electriccoinco/zcash-in-a-box-runner:latest
           volumeMounts:
             - name: zcashconf
-              mountPath: /workspace/zcashconf
-          envFrom:
-            - configMapRef:
-                name: zcashd-testnet-master
+              mountPath: /workspace/zcashconf            
           env:
+            - name: ZCASHD_BINARY_TGZ
+              value: zcashd-tze-artifacts-5c7e3c4.tgz
             - name: Z_SECRETACCESSKEY
               valueFrom:
                 secretKeyRef:
@@ -53,12 +52,8 @@ spec:
               # Get zcashd artifacts
               mc cp zcash-in-a-box/binaries/${ZCASHD_BINARY_TGZ} zcashd-artifacts.tgz
               tar zxvf zcashd-artifacts.tgz
-              # Get a zcash network snapshot
-              mc cp zcash-in-a-box/cache/${ZCASHD_SNAPSHOT} blocks_snapshot.tgz
-              export ZCASH_BLOCK_DIR=testnet3
-              mkdir -p ${HOME}/.zcash/${ZCASH_BLOCK_DIR}
-              tar zxvf blocks_snapshot.tgz -C ${HOME}/.zcash/${ZCASH_BLOCK_DIR}
               # Copy the configmap, because reasons
+              mkdir -p ${HOME}/.zcash
               cp /workspace/zcashconf/zcash.conf ${HOME}/.zcash/zcash.conf
               cat ${HOME}/.zcash/zcash.conf
               /workspace/source/src/zcashd
@@ -80,10 +75,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: zcashd-rpc
-                  key: password
-          envFrom:
-            - configMapRef:
-                name:  zcash-inabox-base                  
+                  key: password               
           ports:
             - name: zcashd-exporter
               containerPort: 9100
