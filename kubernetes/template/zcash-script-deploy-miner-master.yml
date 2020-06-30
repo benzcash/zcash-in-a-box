@@ -7,12 +7,11 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: zcash-script-miner
+      app: zcash-script-miner-master
   template:
     metadata:
       labels:
-        app: zcash-script-miner
-        network: zcash-script
+        app: zcash-script-miner-master
     spec:
       volumes:
         - name: zcashconf
@@ -26,7 +25,7 @@ spec:
               mountPath: /workspace/zcashconf
           envFrom:
             - configMapRef:
-                name: zcashd-testnet-master
+                name: zcash-script-miner-master
           env:
             - name: Z_SECRETACCESSKEY
               valueFrom:

@@ -24,13 +24,13 @@ spec:
         type: string
       - name: MINIOBUCKET
         default: binaries
-        type: string    
+        type: string
       - name: COMMIT
         default: master
-        type: string                  
+        type: string
       - name: JOBS
-        default: "8"
-        type: string        
+        default: "16"
+        type: string
     resources:
       inputs:
         - name: source
@@ -64,10 +64,11 @@ spec:
         image: electriccoinco/zcashd-build:debian10
         script: |
           #!/bin/bash
-          set -e -o pipefail
+          set -ex -o pipefail
           cd source
           pwd
           ls -la
+          echo $(git rev-parse --short HEAD) > /workspace/GIT_COMMIT
           ./zcutil/build.sh -j$(params.JOBS)
       - name: upload-file
         image: minio/mc
@@ -86,16 +87,12 @@ spec:
           #!/bin/sh
           env | sort
           set -xe -o pipefail
-          pwd
-          ls -al
-          ls -al /workspace
-          ls -al /workspace/source
-          ls -al /workspace/source/src
+          export GIT_COMMIT=$(cat /workspace/GIT_COMMIT)
           mc config host add minio $(params.MINIOHOST) ${ACCESSKEYID} ${SECRETACCESSKEY}
           tar --strip-components 3 \
-            -zvcf ./zcashd-artifacts-$(params.COMMIT).tgz \
+            -zvcf ./zcashd-artifacts-${GIT_COMMIT}.tgz \
             /workspace/source/src/zcashd \
             /workspace/source/src/zcash-cli \
             /workspace/source/src/zcash-gtest \
             /workspace/source/src/zcash-tx
-          mc cp ./zcashd-artifacts-$(params.COMMIT).tgz minio/$(params.MINIOBUCKET)/
+          mc cp ./zcashd-artifacts-${GIT_COMMIT}.tgz minio/$(params.MINIOBUCKET)/

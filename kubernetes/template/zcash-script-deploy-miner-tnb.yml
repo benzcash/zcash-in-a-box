@@ -2,17 +2,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: zcash-script-miner
+  name: zcash-script-miner-tnb
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: zcash-script-miner
+      app: zcash-script-miner-tnb
   template:
     metadata:
       labels:
-        app: zcash-script-miner
-        network: zcash-script
+        app: zcash-script-miner-tnb
     spec:
       volumes:
         - name: zcashconf
@@ -26,7 +25,7 @@ spec:
               mountPath: /workspace/zcashconf
           envFrom:
             - configMapRef:
-                name: zcashd-tze-5c7e3c4              
+                name: zcash-script-miner-tnb
           env:
             - name: Z_SECRETACCESSKEY
               valueFrom:
@@ -60,7 +59,7 @@ spec:
               tar zxvf blocks_snapshot.tgz -C ${HOME}/.zcash/${ZCASH_BLOCK_DIR}
               # Copy the configmap, because reasons
               cp /workspace/zcashconf/zcash.conf ${HOME}/.zcash/zcash.conf
-              sleep infinity
+              cat ${HOME}/.zcash/zcash.conf
               /workspace/source/src/zcashd
         - name: zcashd-exporter
           image: electriccoinco/zcashd_exporter

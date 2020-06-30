@@ -5,14 +5,22 @@ metadata:
 data:
   ZCASHD_BINARY_TGZ: zcashd-tze-artifacts-5c7e3c4.tgz
   ZCASHD_SNAPSHOT: zcash-testnet3-809421.tgz
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zcash-script-miner-tnb
+data:
+  ZCASHD_BINARY_TGZ: zcashd-tze-artifacts-test.tgz
+  ZCASHD_SNAPSHOT: zcash-testnet-tnb-test.tgz
 ---  
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: zcashd-testnet-master
+  name: zcash-script-miner-master
 data:
-  ZCASHD_BINARY_TGZ: zcashd-artifacts-master.tgz
-  ZCASHD_SNAPSHOT: zcash-testnet-974247.tgz
+  ZCASHD_BINARY_TGZ: zcashd-artifacts-ab2b7c0.tgz
+  ZCASHD_SNAPSHOT: zcash-testnet-tnb-test.tgz
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -28,7 +36,7 @@ data:
     gen=1
     experimentalfeatures=1
     txindex=1
-    insightexplorer=1
+    insightexplorer=0
     printtoconsole=1
     equihashsolver=tromp
     genproclimit=24
