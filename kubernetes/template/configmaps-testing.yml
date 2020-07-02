@@ -1,23 +1,16 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: zcashd-tze-5c7e3c4
-data:
-  ZCASHD_BINARY_TGZ: zcashd-tze-artifacts-5c7e3c4.tgz
-  ZCASHD_SNAPSHOT: zcash-testnet3-809421.tgz
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: zcash-script-miner-tnb
+  name: zcash-script-miner-tnb-artifacts
 data:
-  ZCASHD_BINARY_TGZ: zcashd-tze-artifacts-test.tgz
+  ZCASHD_BINARY_TGZ: zcashd-tnb-artifacts-ab2b7c0.tgz
   ZCASHD_SNAPSHOT: zcash-testnet-tnb-test.tgz
 ---  
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: zcash-script-miner-master
+  name: zcash-script-miner-master-artifacts
 data:
   ZCASHD_BINARY_TGZ: zcashd-artifacts-ab2b7c0.tgz
   ZCASHD_SNAPSHOT: zcash-testnet-tnb-test.tgz
@@ -25,8 +18,9 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: zcashd-tze-testnet-miner-config
-data: 
+  name: zcashd-testnet-miner-config
+data:
+  ZCASHD_RPCPORT: "38232"
   zcash.conf: |
     listen=1
     testnet=1
@@ -39,6 +33,6 @@ data:
     insightexplorer=0
     printtoconsole=1
     equihashsolver=tromp
-    genproclimit=24
+    genproclimit=4
     rpcuser=zcashrpc
     rpcport=38232

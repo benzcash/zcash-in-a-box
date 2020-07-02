@@ -37,16 +37,22 @@ data:
       - job_name: 'prometheus'
         static_configs:
         - targets: ['localhost:9090']
-      - job_name: 'kubernetes-zcash-pods'
+      - job_name: 'zcashd_exporter'
         kubernetes_sd_configs:
           - role: pod
             selectors:
               - role: pod
-                label: "network=zcash-script"          
+                label: "app=zcash-with-exporter"
         relabel_configs:
           - source_labels: [__meta_kubernetes_pod_name]
             action: replace
             target_label: kubernetes_pod_name
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            action: keep
+            regex: zcashd-exporter
+          - source_labels: [__meta_kubernetes_pod_label_network]
+            action: keep
+            target_label: network
 ---
 apiVersion: v1
 kind: ConfigMap

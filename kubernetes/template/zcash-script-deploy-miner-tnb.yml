@@ -4,19 +4,23 @@ kind: Deployment
 metadata:
   name: zcash-script-miner-tnb
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
-      app: zcash-script-miner-tnb
+      app: zcash-with-exporter
+      version: zcash-script-miner-tnb
+      network: testnet-tnb
   template:
     metadata:
       labels:
-        app: zcash-script-miner-tnb
+        app: zcash-with-exporter
+        version: zcash-script-miner-tnb
+        network: testnet-tnb
     spec:
       volumes:
         - name: zcashconf
           configMap:
-            name: zcashd-tze-testnet-miner-config  
+            name: zcashd-testnet-miner-config  
       containers:
         - name: zcashd-script
           image: electriccoinco/zcash-in-a-box-runner:latest
@@ -60,7 +64,7 @@ spec:
               # Copy the configmap, because reasons
               cp /workspace/zcashconf/zcash.conf ${HOME}/.zcash/zcash.conf
               cat ${HOME}/.zcash/zcash.conf
-              /workspace/source/src/zcashd
+              /workspace/source/src/zcashd -rpcpassword=${ZCASHD_RPCPASSWORD} -checkblocks=1
         - name: zcashd-exporter
           image: electriccoinco/zcashd_exporter
           command:
@@ -71,7 +75,7 @@ spec:
             - --rpc.port
             - $(ZCASHD_RPCPORT)
             - --rpc.user
-            - $(ZCASHD_RPCUSER)
+            - zcashrpc
             - --rpc.password
             - $(ZCASHD_RPCPASSWORD)
           env:
@@ -82,7 +86,9 @@ spec:
                   key: password
           envFrom:
             - configMapRef:
-                name:  zcash-inabox-base                  
+                name: zcashd-testnet-miner-config
           ports:
+            - name: zcashd
+              containerPort: 18233
             - name: zcashd-exporter
               containerPort: 9100

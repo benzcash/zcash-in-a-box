@@ -10,13 +10,16 @@ This project will compile and deploy zcash source code to sandbox environment wi
 - [X] Tekton task to build and upload zcash binary to Minio
 - [X] Make runner Docker image for deployments
 - [X] Create deployment for binary
-- [ ] Tekton task to deploy
+- [X] Tekton task to deploy
 - [X] Deploy metrics tools
-- [ ] Deploy dashboards
+- [X] Deploy dashboards  https://grafana.com/grafana/dashboards/12561
 - [ ] Setup CI for runner Dockerfile
+- [ ] Try CoreDNS for node coordination
+- [ ] Devise easier packaging
 
 # TODO
 - Prometheus target labels should be more dynamic
+- Promtail is causing file handle exhaustion
 
 ## Security
 

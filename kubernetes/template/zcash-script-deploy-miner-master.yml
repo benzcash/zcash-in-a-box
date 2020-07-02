@@ -7,16 +7,22 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: zcash-script-miner-master
+      app: zcash-with-exporter
+      version: zcash-script-miner-master
+      network: testnet3
   template:
     metadata:
+      annotations:
+        prometheus.io/port: "9100"
       labels:
-        app: zcash-script-miner-master
+        app: zcash-with-exporter
+        version: zcash-script-miner-master
+        network: testnet3
     spec:
       volumes:
         - name: zcashconf
           configMap:
-            name: zcashd-tze-testnet-miner-config  
+            name: zcashd-testnet-miner-config
       containers:
         - name: zcashd-script
           image: electriccoinco/zcash-in-a-box-runner:latest
@@ -60,7 +66,7 @@ spec:
               # Copy the configmap, because reasons
               cp /workspace/zcashconf/zcash.conf ${HOME}/.zcash/zcash.conf
               cat ${HOME}/.zcash/zcash.conf
-              /workspace/source/src/zcashd
+              /workspace/source/src/zcashd -rpcpassword=${ZCASHD_RPCPASSWORD}
         - name: zcashd-exporter
           image: electriccoinco/zcashd_exporter
           command:
@@ -71,7 +77,7 @@ spec:
             - --rpc.port
             - $(ZCASHD_RPCPORT)
             - --rpc.user
-            - $(ZCASHD_RPCUSER)
+            - zcashrpc
             - --rpc.password
             - $(ZCASHD_RPCPASSWORD)
           env:
@@ -82,7 +88,9 @@ spec:
                   key: password
           envFrom:
             - configMapRef:
-                name:  zcash-inabox-base                  
+                name:  zcashd-testnet-miner-config
           ports:
+            - name: zcashd
+              containerPort: 18233
             - name: zcashd-exporter
               containerPort: 9100
