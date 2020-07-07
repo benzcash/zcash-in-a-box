@@ -5,7 +5,7 @@ metadata:
   name: zcash-script-miner-tnb-artifacts
 data:
   ZCASHD_BINARY_TGZ: zcashd-tnb-artifacts-ab2b7c0.tgz
-  ZCASHD_SNAPSHOT: zcash-testnet-tnb-test.tgz
+  ZCASHD_SNAPSHOT: zcash-testnet-miner-tnb-test3.tgz
 ---  
 apiVersion: v1
 kind: ConfigMap
@@ -13,7 +13,7 @@ metadata:
   name: zcash-script-miner-master-artifacts
 data:
   ZCASHD_BINARY_TGZ: zcashd-artifacts-ab2b7c0.tgz
-  ZCASHD_SNAPSHOT: zcash-testnet-tnb-test.tgz
+  ZCASHD_SNAPSHOT: zcash-testnet-miner-tnb-test3.tgz
 ---
 apiVersion: v1
 kind: ConfigMap

@@ -29,7 +29,7 @@ spec:
               mountPath: /workspace/zcashconf
           envFrom:
             - configMapRef:
-                name: zcash-script-miner-tnb
+                name: zcash-script-miner-tnb-artifacts
           env:
             - name: Z_SECRETACCESSKEY
               valueFrom:
@@ -49,19 +49,21 @@ spec:
               set -x
               ls -l
               env | sort
-              # Configure the minio client
+              #### Configure the minio client ####
               mc config host add zcash-in-a-box http://minio:9000 minio ${Z_SECRETACCESSKEY} --api S3v4
-              # Get zcash network parameters
+              #### Get zcash network parameters ####
               mc cp -r zcash-in-a-box/cache/zcash-params/ ${HOME}/.zcash-params/
-              # Get zcashd artifacts
+              #### Get zcashd artifacts ####
+              #sleep infinity
               mc cp zcash-in-a-box/binaries/${ZCASHD_BINARY_TGZ} zcashd-artifacts.tgz
               tar zxvf zcashd-artifacts.tgz
-              # Get a zcash network snapshot
+              #### Get a zcash network snapshot #### 
               mc cp zcash-in-a-box/cache/${ZCASHD_SNAPSHOT} blocks_snapshot.tgz
               export ZCASH_BLOCK_DIR=testnet3
               mkdir -p ${HOME}/.zcash/${ZCASH_BLOCK_DIR}
-              tar zxvf blocks_snapshot.tgz -C ${HOME}/.zcash/${ZCASH_BLOCK_DIR}
-              # Copy the configmap, because reasons
+              #tar zxvf blocks_snapshot.tgz -C ${HOME}/.zcash/${ZCASH_BLOCK_DIR}
+              tar zxvf blocks_snapshot.tgz -C ${HOME}/.zcash
+              #### Copy the configmap, because reasons ####
               cp /workspace/zcashconf/zcash.conf ${HOME}/.zcash/zcash.conf
               cat ${HOME}/.zcash/zcash.conf
               /workspace/source/src/zcashd -rpcpassword=${ZCASHD_RPCPASSWORD} -checkblocks=1
