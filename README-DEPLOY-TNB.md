@@ -1,0 +1,172 @@
+# Deploy TNB
+
+TNB (testnet-in-a-box) will deploy a collection of zcashd instances to a Kubernetes cluster.
+
+The deployment bundle will consist of a tar archive containing:
+- An archive of binaries from a TNB build (zcashd, zcash-cli, zcash-gtest, zcash-tx) see the task for more info: [./kubernetes/tekton/tasks/build-binary-tnb.yml](./kubernetes/tekton/tasks/build-binary-tnb.yml)
+- `zcash.conf` used for miners starting the testnet
+- An archive of a block snapshot from the regular testnet
+
+## Requirements
+### Kubernetes cluster
+
+Using `kind`
+```
+kind create cluster --name zcash-in-a-box
+kubectl cluster-info
+```
+
+Using GCP
+
+```
+export CLUSTERNAME=zcash-in-a-box-ben-v1
+export CLUSTERZONE=us-west1-a
+export GCP_PROJECT=buildenv
+
+gcloud container \
+clusters create ${CLUSTERNAME} \
+--project ${GCP_PROJECT} \
+--zone ${CLUSTERZONE} \
+--machine-type "n1-standard-8" \
+--cluster-version="1.15" \
+--num-nodes "1" \
+--preemptible \
+--enable-autoupgrade \
+--enable-autorepair \
+--enable-ip-alias \
+--metadata disable-legacy-endpoints=true \
+--enable-autoscaling \
+--max-nodes=2
+
+gcloud container clusters get-credentials \
+  --project ${GCP_PROJECT} \
+  --zone ${CLUSTERZONE} \
+  ${CLUSTERNAME}
+
+kubectl create clusterrolebinding cluster-admin-binding \
+--clusterrole=cluster-admin \
+--user=$(gcloud config get-value core/account)
+```
+
+## Deploy Tekon
+
+Tekon is used to compile and deploy software inside the Kubernetes cluster.
+
+```
+kubectl apply -f kubernetes/tekton/release/tekton-pipelines-v0.13.2.yml
+kubectl apply -f kubernetes/tekton/release/tekton-dashboard-v0.7.0.yml
+kubectl apply -f kubernetes/tekton/serviceAccount.yml
+```
+
+### Open the dashboard
+
+```
+kubectl --namespace tekton-pipelines port-forward svc/tekton-dashboard 9097:9097
+```
+
+Navigate to http://localhost:9097
+
+## Deploy Minio with Tekton
+
+Minio will be used as object storage for blocks, binary files, and configurations.
+
+```
+kubectl create -f kubernetes/tekton/tasks/create-minio-secret.yml
+kubectl create -f kubernetes/tekton/tasks/create-zcashrpc-secret.yml
+kubectl create -f kubernetes/tekton/tasks/create-monitoring-grafana-admin-secret.yml
+```
+
+```
+kubectl apply -f kubernetes/minio/minio-standalone-pvc.yaml
+kubectl apply -f kubernetes/minio/minio-standalone-service.yaml
+kubectl apply -f kubernetes/minio/minio-standalone-deployment.yaml
+```
+
+**Minio healthcheck needs to be passing**
+```
+kubectl wait --for=condition=ready pods --selector app=minio --timeout=300s
+```
+
+This command will wait 5 minutes (should only take 2) for the minio container to be marked "healthy" and we can proceed.
+
+You will get output like
+```
+pod/minio-757c6f5468-mv9cp condition met
+```
+
+Then create some buckets.
+
+```
+kubectl create -f kubernetes/tekton/tasks/create-minio-bucket.yml
+kubectl create -f kubernetes/tekton/tasks/create-cache-bucket.yml
+```
+## Import zcash params bundle
+
+This task caches the zcashd parameters on mino for nodes to use.
+
+```
+kubectl create -f kubernetes/tekton/tasks/import-zcash-params.yml
+```
+
+## Import a tnb bundle
+
+```
+kubectl create -f kubernetes/tekton/tasks/import-zcash-tnb-bundle.yml 
+```
+
+## Deploy monitoring
+
+The monitoring statefulset will collect metrics about the deployed nodes.
+
+```
+kubectl apply -f kubernetes/monitoring/configmap.yml
+kubectl apply -f kubernetes/monitoring/service.yml
+kubectl apply -f kubernetes/monitoring/serviceaccount.yml
+kubectl apply -f kubernetes/monitoring/statefulset.yml
+```
+
+Get the grafana admin password
+```
+kubectl get secrets monitoring-grafana-admin -o jsonpath="{.data.password}" | base64 -d
+```
+
+**Monitoring healthcheck needs to be passing**
+```
+kubectl wait --for=condition=ready pods --selector app=monitoring --timeout=300s
+```
+
+This command will wait 5 minutes (should only take 2) for the monitoring containers to be marked "healthy" and we can proceed.
+
+You will get output like
+```
+pod/monitoring-0 condition met
+```
+
+Open a tunnel to grafana
+
+```
+kubectl port-forward svc/monitoring 3000:3000
+```
+
+Open a browser to http://locahost:3000
+
+Login as `admin` with the generated password secret.
+
+## Review the configuration
+
+All configuration is done through Kubernetes ConfigMaps.
+
+Review the contents of `kubernetes/template/configmaps-tnb.yml`.
+This will contain the the bundle name to use and `zcash.conf` contents.
+
+It will also determine the number of replicas (miners) to run.
+
+## Deploy the instances
+
+```
+kubectl apply -f kubernetes/template/zcash-tnb-bundle-deploy.yml
+```
+
+### TODO
+Naming on the bundle isn't right
+Manual "addnode" to get the peers talking.

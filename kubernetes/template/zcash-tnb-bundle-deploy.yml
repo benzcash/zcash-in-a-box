@@ -1,0 +1,93 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zcash-tnb-bundle
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: zcash-with-exporter
+      version: zcash-tnb-bundle
+      network: testnet-tnb
+  template:
+    metadata:
+      labels:
+        app: zcash-with-exporter
+        version: zcash-tnb-bundle
+        network: testnet-tnb
+    spec:
+      volumes:
+        - name: zcashconf
+          configMap:
+            name: zcashd-testnet-miner-config  
+      containers:
+        - name: zcashd-script
+          image: electriccoinco/zcash-in-a-box-runner:latest
+          volumeMounts:
+            - name: zcashconf
+              mountPath: /workspace/zcashconf
+          envFrom:
+            - configMapRef:
+                name: zcash-tnb-bundle
+          env:
+            - name: Z_SECRETACCESSKEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret-key
+                  key: SECRETACCESSKEY
+            - name: ZCASHD_RPCPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: zcashd-rpc
+                  key: password
+          args:
+            - bash
+            - -c
+            - |
+              set -e -o pipefail
+              set -x
+              ls -l
+              env | sort
+              ch ${HOME}
+              #### Configure the minio client ####
+              mc config host add zcash-in-a-box http://minio:9000 minio ${Z_SECRETACCESSKEY} --api S3v4
+              #### Get zcash network parameters ####
+              mc cp -r zcash-in-a-box/cache/zcash-params/ ${HOME}/.zcash-params/
+              #### Get zcash-tnb-bundle ####
+              mc cp zcash-in-a-box/cache/${ZCASHD_BUNDLE_TGZ} ${ZCASHD_BUNDLE_TGZ}
+              tar zxvf ${ZCASHD_BUNDLE_TGZ}
+              ln -sf 
+              #### Copy the configmap, because reasons ####
+              mkdir -p ${HOME}/.zcash/
+              cp /workspace/zcashconf/zcash.conf ${HOME}/.zcash/zcash.conf
+              cat ${HOME}/.zcash/zcash.conf
+              sleep infinity
+              /workspace/source/src/zcashd -rpcpassword=${ZCASHD_RPCPASSWORD} -checkblocks=1
+        - name: zcashd-exporter
+          image: electriccoinco/zcashd_exporter
+          command:
+            - /go/bin/zcashd_exporter
+          args:
+            - --web.listen-address
+            - :9100
+            - --rpc.port
+            - $(ZCASHD_RPCPORT)
+            - --rpc.user
+            - zcashrpc
+            - --rpc.password
+            - $(ZCASHD_RPCPASSWORD)
+          env:
+            - name: ZCASHD_RPCPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: zcashd-rpc
+                  key: password
+          envFrom:
+            - configMapRef:
+                name: zcashd-testnet-miner-config
+          ports:
+            - name: zcashd
+              containerPort: 18233
+            - name: zcashd-exporter
+              containerPort: 9100
