@@ -51,5 +51,5 @@ spec:
           cat rclone.config
           rclone -vvv --config ./rclone.config copyurl \
             $(params.SNAPSHOT) \
-            minio:/$(params.MINIOBUCKET)/zcash-tnb-ab2b7c0-bundle.tgz
+            minio:/$(params.MINIOBUCKET)/$(params.SNAPSHOT_NAME)
 
