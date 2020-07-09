@@ -100,6 +100,24 @@ Then create some buckets.
 kubectl create -f kubernetes/tekton/tasks/create-minio-bucket.yml
 kubectl create -f kubernetes/tekton/tasks/create-cache-bucket.yml
 ```
+
+## Deploy monitoring
+
+The monitoring statefulset will collect metrics about the deployed nodes.
+
+```
+kubectl apply -f kubernetes/monitoring/configmap.yml
+kubectl apply -f kubernetes/monitoring/service.yml
+kubectl apply -f kubernetes/monitoring/serviceaccount.yml
+kubectl apply -f kubernetes/monitoring/statefulset.yml
+```
+
+## Create the configmaps
+
+```
+kubectl apply -f kubernetes/template/configmaps-tnb.yml
+```
+
 ## Import zcash params bundle
 
 This task caches the zcashd parameters on mino for nodes to use.
@@ -114,17 +132,6 @@ kubectl create -f kubernetes/tekton/tasks/import-zcash-params.yml
 kubectl create -f kubernetes/tekton/tasks/import-zcash-tnb-bundle.yml 
 ```
 
-## Deploy monitoring
-
-The monitoring statefulset will collect metrics about the deployed nodes.
-
-```
-kubectl apply -f kubernetes/monitoring/configmap.yml
-kubectl apply -f kubernetes/monitoring/service.yml
-kubectl apply -f kubernetes/monitoring/serviceaccount.yml
-kubectl apply -f kubernetes/monitoring/statefulset.yml
-```
-
 ## Review the configuration
 
 All configuration is done through Kubernetes ConfigMaps.
@@ -134,10 +141,7 @@ This will contain the the bundle name to use and `zcash.conf` contents.
 
 It will also determine the number of replicas (miners) to run.
 
-## Create the configmaps and deployment
-
 ```
-kubectl apply -f kubernetes/template/configmaps-tnb.yml
 kubectl apply -f kubernetes/template/zcash-tnb-bundle-deploy.yml
 ```
 
