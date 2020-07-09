@@ -149,7 +149,7 @@ kubectl apply -f kubernetes/template/zcash-tnb-bundle-deploy.yml
 
 **STILL A WORK IN PROGRESS**
 
-Get the pods IPs.
+Get the pods IPs. These values won't be available until the containers are started.
 
 ```
 kubectl get pods -l app=zcash-with-exporter  -o jsonpath="{.items[*].status.podIP}"
@@ -188,12 +188,18 @@ Use 'kubectl describe pod/zcash-tnb-bundle-944fd6b5b-g4wdh -n default' to see al
        valid_lft forever preferred_lft forever
 ```
 
-Add the peer node
+## Follow the logs of the miners to make sure they start up ok
+
+```
+kubectl logs -f $pod1 -c zcashd-script
+```
+
+## Add the peer node
 
 Exec into pod1
 
 ```
-kubectl exec  $pod1 -- bash
+kubectl exec -ti $pod1 -c zcashd-script -- bash
 ```
 
 Peer with the other miner
@@ -202,11 +208,6 @@ Peer with the other miner
 ${HOME}/workspace/source/src/zcash-cli -rpcpassword=${ZCASHD_RPCPASSWORD} addnode "10.244.0.58:18233" "add"
 ```
 
-## Follow the logs of the miners
-
-```
-kubectl logs -f $pod1 -c zcashd-script
-```
 
 ## View the cluster in grafana
 
