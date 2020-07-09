@@ -125,21 +125,90 @@ kubectl apply -f kubernetes/monitoring/serviceaccount.yml
 kubectl apply -f kubernetes/monitoring/statefulset.yml
 ```
 
+## Review the configuration
+
+All configuration is done through Kubernetes ConfigMaps.
+
+Review the contents of `kubernetes/template/configmaps-tnb.yml`.
+This will contain the the bundle name to use and `zcash.conf` contents.
+
+It will also determine the number of replicas (miners) to run.
+
+## Create the configmaps and deployment
+
+```
+kubectl apply -f kubernetes/template/configmaps-tnb.yml
+kubectl apply -f kubernetes/template/zcash-tnb-bundle-deploy.yml
+```
+
+## Peer the pods
+
+**STILL A WORK IN PROGRESS**
+
+Get the pods IPs.
+
+```
+kubectl get pods -l app=zcash-with-exporter  -o jsonpath="{.items[*].status.podIP}"
+```
+
+You'll get something like
+
+```
+10.244.0.57 10.244.0.58
+```
+
+Get the pod name and put them in your env.
+
+```
+export pod1=$(kubectl get pods -l app=zcash-with-exporter  -o jsonpath="{.items[0].metadata.name}")
+export pod2=$(kubectl get pods -l app=zcash-with-exporter  -o jsonpath="{.items[1].metadata.name}")
+```
+
+Use this name to verify the pod IP
+
+```
+$ kubectl exec  $pod1 -- ip a
+Defaulting container name to zcashd-script.
+Use 'kubectl describe pod/zcash-tnb-bundle-944fd6b5b-g4wdh -n default' to see all of the containers in this pod.
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+3: eth0@if58: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
+    link/ether ba:31:cf:99:d1:f7 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet 10.244.0.57/24 brd 10.244.0.255 scope global eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::b831:cfff:fe99:d1f7/64 scope link 
+       valid_lft forever preferred_lft forever
+```
+
+Add the peer node
+
+Exec into pod1
+
+```
+kubectl exec  $pod1 -- bash
+```
+
+Peer with the other miner
+
+```
+${HOME}/workspace/source/src/zcash-cli -rpcpassword=${ZCASHD_RPCPASSWORD} addnode "10.244.0.58:18233" "add"
+```
+
+## Follow the logs of the miners
+
+```
+kubectl logs -f $pod1 -c zcashd-script
+```
+
+## View the cluster in grafana
+
 Get the grafana admin password
 ```
 kubectl get secrets monitoring-grafana-admin -o jsonpath="{.data.password}" | base64 -d
-```
-
-**Monitoring healthcheck needs to be passing**
-```
-kubectl wait --for=condition=ready pods --selector app=monitoring --timeout=300s
-```
-
-This command will wait 5 minutes (should only take 2) for the monitoring containers to be marked "healthy" and we can proceed.
-
-You will get output like
-```
-pod/monitoring-0 condition met
 ```
 
 Open a tunnel to grafana
@@ -152,20 +221,13 @@ Open a browser to http://locahost:3000
 
 Login as `admin` with the generated password secret.
 
-## Review the configuration
+From the left side menu, select `Dashboards`, then `Manage`.
 
-All configuration is done through Kubernetes ConfigMaps.
+Select `Import` from the top right.
 
-Review the contents of `kubernetes/template/configmaps-tnb.yml`.
-This will contain the the bundle name to use and `zcash.conf` contents.
+In the text box labeld `Import via grafana.com` enter `12561` and click `Load`.
 
-It will also determine the number of replicas (miners) to run.
-
-## Deploy the instances
-
-```
-kubectl apply -f kubernetes/template/zcash-tnb-bundle-deploy.yml
-```
+Select the prometheus and loki sources and import!
 
 ### TODO
 Naming on the bundle isn't right

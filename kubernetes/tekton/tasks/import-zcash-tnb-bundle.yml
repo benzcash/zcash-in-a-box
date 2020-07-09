@@ -13,8 +13,11 @@ spec:
       default: cache
       type: string    
     - name: SNAPSHOT
-      default: https://gateway.pinata.cloud/ipfs/QmUY4i68c6ZaGioAPwwvxKnAMmRWoxHHAE6iR1gC9xt62K
-      type: string                  
+      default: QmXUVBsR271XNND77Y3j2T1adoKA9GwEfHRqZgFRnpK7KB
+      type: string
+    - name: SNAPSHOT_NAME
+      default: zcash-tnb-bundle-ab2b7c0.tgz
+      type: string                     
     steps:    
       - name: import-zcash-tnb-bundle
         image: rclone/rclone
