@@ -222,7 +222,7 @@ Open a tunnel to grafana
 kubectl port-forward svc/monitoring 3000:3000
 ```
 
-Open a browser to http://locahost:3000
+Open a browser to http://localhost:3000
 
 Login as `admin` with the generated password secret.
 
